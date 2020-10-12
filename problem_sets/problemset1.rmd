@@ -1,8 +1,11 @@
 ---
 title: 'IMT 573: Problem Set 1 - Exploring Data'
-author: "Your Name Here"
+author: "Alexander Davis"
 date: 'Due: Tuesday, October 13, 2020 by 9am PT'
-output: pdf_document
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
 ---
 
 <!-- This syntax can be used to add comments that are ignored during knitting process. -->
@@ -21,7 +24,7 @@ Before beginning this assignment, please ensure you have access to R and RStudio
 
 4. All materials and resources that you use (with the exception of lecture slides) must be appropriately referenced within your assignment. In particular, note that Stack Overflow is licenses as Creative Commons (CC-BY-SA). This means you have to attribute any code you refer from SO.
 
-5. Partial credit will be awarded for each question for which a serious attempt at finding an answer has been shown. But please **DO NOT** submit pages and pages of hard-to-read code and attempts that is impossible to grade. That is, avoid redundancy. Remember that one of the key goals of a data scientist is to produce coherent reports that others can easily follow.  Students are \emph{strongly} encouraged to attempt each question and to document their reasoning process even if they cannot find the correct answer. If you would like to include R code to show this process, but it does not run withouth errors you can do so with the `eval=FALSE` option as follows:
+5. Partial credit will be awarded for each question for which a serious attempt at finding an answer has been shown. But please **DO NOT** submit pages and pages of hard-to-read code and attempts that is impossible to grade. That is, avoid redundancy. Remember that one of the key goals of a data scientist is to produce coherent reports that others can easily follow.  Students are \emph{strongly} encouraged to attempt each question and to document their reasoning process even if they cannot find the correct answer. If you would like to include R code to show this process, but it does not run without errors you can do so with the `eval=FALSE` option as follows:
 
 ```{r example chunk with a bug, eval=FALSE}
 a + b # these object dont' exist 
@@ -42,6 +45,14 @@ In your response, before presenting your code for the function, tell us your off
 
 
 ##### Insert code. Your code should appear within R Code Chunks.
+```{r calculate BMI}
+calculate_bmi <- function(weight, height) {
+  bmi <- sum(weight, height)
+  return(bmi)
+}
+
+calculate_bmi(5,10)
+```
 
 
 
@@ -56,6 +67,7 @@ The data itself resides in package *nycflights13*. You may need to install both.
 
 ```{r Setup, message=FALSE, warning=FALSE}
 # Load standard libraries
+library(dplyr)
 library(tidyverse)
 library('nycflights13')
 ```
@@ -64,12 +76,15 @@ library('nycflights13')
 # Load the nycflights13 library which includes data on all
 # lights departing NYC
 data(flights)
+
 # Note the data itself is called flights, we will make it into a local df
 # for readability
 flights <- tbl_df(flights)
+
 # Look at the help file for information about the data
 # ?flights
 flights
+
 # summary(flights)
 ```
 
@@ -77,12 +92,29 @@ flights
 
 Load the data and describe in a short paragraph how the data was collected and what each variable represents. 
 
+_This is the data collected over the period of a year from flights going into and out of NYC. The variables include; YEAR, MONTH, DAY as well as departure time (dep_time) which would be in a time format of 5:17 for example, a scheduled departure time (shed_dep_time) in similar format, departure delay (dep_delay) in minuits either positive or negative values depending if the flight departed early or late, an arrival time (arr_time) in a similar time format, a scheduled arrival time (shed_arr_time), and an arrival delay (arr_delay) which is also in a minutes format. There is then the carrier which is just 2 letters, the flight number (numbers), a tail number which is a combination of letters and numbers referencing the specific plane, the origin airport and the destination airport. Total Air_time which is in minutes, distance in miles, and then hour and minute column followed by time_hour._
+
 ##### (b) Inspecting Data
 Perform a basic inspection of the data and discuss what you find. Inspections may involve asking the following questions (the list is not inclusive, you may well ask other questions):
   
   * How many distinct flights do we have in the dataset?
   * How many missing values are there in each variable?
   * Do you see any unreasonable values? *Hint: Check out min, max and range functions.*
+  
+```{r Inspecting data}
+#unique(flights$carrier) ## doublecheck what 00, 9E, and B6 means.
+
+#max(flights$distance)
+
+#min(flights$distance) ## some possible issues with a 17 mile trip??
+
+flight_time_wo <- flights %>%
+  filter(!is.na(air_time), !is.na(air_time)) ## Removing NA values... these could potentiall be canceled flights.
+
+min(flight_time_wo$air_time) ## Seeing a min of 20 min which could be weird.
+
+```
+  
 
 ##### (c) Formulating Questions
 
@@ -93,16 +125,46 @@ Example questions:
   * Which airport, JFK or LGA, experience more delays?
   * What was the worst day to fly out?
   * Are there seasonal patterns
+  
+_Do origin airports experience seasonal delays more than others?  This would be interesting as one could make an informed decision to choose to fly from one airport over another to avoid delays. This kind of data would be useful also for busiensses and/or goverment bodies to better organize how flights are scheduled to try and optimize airport usage or to find which airport might need some remodeling/optimization to support increased traffic_
+
+_Which airline experiences more delays and by how much?_
 
 ##### (d) Exploring Data
 
 For each of the questions you proposed in Problem 1c, perform an exploratory data analysis designed to address the question. Produce visualizations (graphics or tables) to answer your question.
   * You need to explore the data from the point of view of the questions
-  * Depending on the question, you woul dneed to provide precise definition. For example, what does "more delays" mean.
+  * Depending on the question, you would need to provide precise definition. For example, what does "more delays" mean.
   * At a minimum, you should produce two visualizations (graphics or tables) related to each question. Be sure to describe what the visuals show and how they speak to your question of interest. 
+  
+```{r Airline data question 1}
+## Do origin airports experience seasonal delays more than others?
+
+airport_data <- flights %>%
+  group_by(origin, month) %>%
+  summarize(mean = mean(dep_delay, na.rm = TRUE))
+
+airport_data
+
+ggplot(data = airport_data) +
+  geom_smooth(
+    mapping = aes(x = month, y = mean, color = origin)
+  )
+
+## The graph shows a clear difference between EWR and the other two airports. It would appear that there is a seasonality for all airports. This we would expect as the summer months see more travelers and probably more families traveling which could account for the increase in delays. Furthermore, we see delays during typically winter months which could be attributed to snowy conditions causing delays. One could use this data to to pick an optimal time to fly and airlines could use this data to scrutinize how flights are scheduled and account for expected delays during specific months.
+```
+```{r Airline data question 2}
+# Which airline experiences more delays and by how much?
+
+airline_data <- flights %>%
+  group_by(carrier) %>%
+  summarize(mean = mean(dep_delay, na.rm = TRUE))
+airline_data
+```
 
 
 ##### (e) Challenge Your Results
 
 After completing the exploratory analyses from Problem 1d, do you have any concerns about your findings? How well defined was your original question? Do you have concerns regarding your answer? Is additional analysis/different data needed? Comment on any ethical and/or privacy concerns you have with your analysis. 
 
+_I don't believe there is sufficient privacy data of individuals for there to be any ethical concerns. If there were ticket information attached to each flight I could see potential privacy issues.  I think the major problem would be assigning more context to some of the assertions made about the data being used to answer the questions.  There could be many factors that can cause delays of a flight and to rely on just a few attributes to show which airline or airport does better might not provide the whole picture.  I think the questions I provided are good starting points but could be refined further or expanded on to allow for more attributes or variables to provide more insight into what causes delays._
