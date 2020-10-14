@@ -1,10 +1,12 @@
 ---
 title: 'IMT 573: Formulating Data Science Questions'
-author: 'Your Name Here'
-date: 'Insert date'
-output: pdf_document
-header-includes:
-- \usepackage{xcolor}
+author: "Alexander Davis"
+date: "Oct 15 2020"
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+header-includes: \usepackage{xcolor}
 ---
 
 <!-- This syntax can be used to add comments that are ignored during knitting process. -->
@@ -30,7 +32,7 @@ For the following cases, think about what data you might use to answer the resea
 
 \item {\bf Population Displacement after Disasters:} Suppose you work for the American Red Cross. Your job is to help determine where to send relief supplies, such as food, medicine and water, after a large-scale disaster. However, you know that when crises occur people move to other, less damaged areas, perhaps to live temporarily with family or friends. How might you understand migration patterns following disasters? 
 
-\textcolor{red}{Response: }
+\textcolor{red}{Response: I would take a look at area code population data and join that with the areas affected by the disaster. I would begin with the path of the hurricaine and compare that with the most densly populated areas that were not struck. If the downtown portion of a city was unaffected then I could imagine that would be a spot where many people would go to. I believe stadiums are often used as areas to house many people as long as they are not damaged. I would also want to gather immigration data from people who recently moved into the area. If we can identify previous out of state addresses this could also allow us to identify likley areas individuals might move. There might be neighboring states that also could be effected and individuals might decide to not move away.}
 
 \item {\bf Predicting Patterns of Mobile Application Usage:} Suppose you are tasked with improving the user experience of a particular mobile phone operating system. Your team comes up with the idea to try to decrease the time it takes for applications on the phone to start. How might you understand typical application usage patterns? What additional data might you use to help predict what applications are going to be used next by a particular user?
 
