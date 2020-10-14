@@ -1,0 +1,185 @@
+---
+title: "IMT 573: lab-dplyr"
+author: 'Alexander Davis'
+date: 'Tuesday, October 13, 2020'
+output:
+  pdf_document: default
+  html_document: default
+---
+
+## Obectives
+
+In this demo we will practice working with data. We will employ the `dplyr` verbs to manipulate a dataset in various ways. 
+
+```{r Setup, message=FALSE}
+# Load some helpful libraries for this course
+library(tidyverse)
+```
+
+#### Import and inspect the data
+We’ll be using Gapminder data, which represents the health and wealth of nations. It was pioneered by Hans Rosling, who is famous for describing the prosperity of nations over time through famines, wars and other historic events with this beautiful data visualization in his 2006 TED Talk: The best stats you’ve ever seen:
+
+Let's import this data into R and see what it looks like. 
+
+```{r load-data}
+gapminder <- read_csv('https://raw.githubusercontent.com/OHI-Science/data-science-training/master/data/gapminder.csv') 
+```
+
+What is the size of this dataset?
+
+```{r datadim}
+# Find and print the number of row and columns in this dataset
+dim(gapminder)
+```
+
+Consider looking at the raw data. What variables are listed? What data types are used for this data? Do you spot any immediate concerns?
+
+```{r datastats}
+# Use RStudio utils to view the raw dataset
+# View(gapminder)
+# Get variable summaries
+summary(gapminder)
+```
+
+
+
+## dplyr Verbs for Data Manipulation
+
+`dplyr` is a grammar of data manipulation, providing a consistent set of verbs that help you solve the most common data manipulation challenges:
+
+- `mutate()` adds new variables that are functions of existing variables
+- `select()` picks variables based on their names.
+- `filter()` picks cases based on their values.
+- `summarise()` reduces multiple values down to a single summary.
+- `arrange()` changes the ordering of the rows.
+
+Let's practice our data manipulation skills with the gapminder data that you just loaded.
+
+### Filter: keep rows matching criteria
+Q1: Filter the gapminder data for life expectancy less than 29
+```{r filterdemo1}
+filter(gapminder, lifeExp < 29)
+```
+
+Q2: “Filter the gapminder data for the country Mexico”
+
+```{r filterdemo2}
+## Your turn
+filter(gapminder, country == "Mexico")
+```
+
+Q3: if we want two country names?
+We can’t use the == operator here, because it can only operate on one thing at a time. We will use the `%in%` operator:
+```{r filterdemo3}
+filter(gapminder, country %in% c("Mexico", "Peru"))
+```
+
+Q4: “We want data for Mexico in 2002?”
+```{r filterdemo4}
+## Your turn
+filter(gapminder, country == "Mexico" & year == 2002)
+```
+
+### Select: pick columns by name
+ 
+```{r selectdemo1}
+select(gapminder, year, country, lifeExp) 
+```
+
+We can also use - to deselect columns
+```{r selectdemo2}
+select(gapminder, -continent, -lifeExp) # you can use - to deselect columns
+```
+
+
+### Arrange: reorder rows
+Q: Sorted by year and then life-expectancy
+```{r arrangedemo1}
+arrange(gapminder, year, lifeExp)
+```
+
+Q: But your boss wants to see the data sorted in reverse chronological order.
+```{r arrangedemo2}
+## Your turn
+arrange(gapminder, -year)
+```
+
+### Mutate: add new variables
+Q: Imagine we want to know each country's annual GDP. We can multiply pop by gdpPercap to create a new column named gdp.
+```{r mutatedemo1}
+gapminder %>%
+  mutate(gdp = pop * gdpPercap)
+```
+
+Q. Now we want to calculate the annual GDP for all Asian countries in the year 2007 and add it as a new column. How can you do it?
+```{r mutatedemo2}
+## Your turn
+gapminder %>%
+  filter(continent == "Asia" & year == 2007) %>%
+  mutate(gdp = pop * gdpPercap)
+```
+
+Q. Now we want to calculate the population in thousands for all Asian countries in the year 2007 and add it as a new column. How can you do it? *Hint: You will use the same logic as the previous question, just with gdp calculation replaced with pop/1000 calculation*
+```{r mutatedemo3}
+## Your turn
+gapminder %>%
+  filter(continent == "Asia" & year == 2007) %>%
+  mutate(popThousands = pop/1000)
+```
+
+### Summarize with group_by
+Q. Find the total population on each continent in 2005
+```{r}
+gapminder %>%
+  filter(year == 2002) %>%
+  group_by(continent) %>% 
+  mutate(cont_pop = sum(pop))
+```
+
+Q. Find the median population on each continent in 2002
+```{r}
+## Your Turn
+gapminder %>%
+  select(continent, country, year, pop) %>%
+  filter(year == 2002) %>%
+  group_by(continent, year) %>%
+  summarise(median = median(pop))
+```
+
+### Summarize with group_by
+We can use more than one grouping variable. Let’s get total populations by continent and year.
+```{r}
+gapminder %>%
+  group_by(continent, year) %>%
+  summarize(cont_pop = sum(pop))
+```
+
+
+#### Let's chain many of these verbs.
+What is the maximum GDP per continent across all years?
+```{r}
+## Your turn
+gapminder %>%
+  group_by(continent, year) %>%
+  summarize(max(gdpPercap))
+```
+
+Find the maximum life expectancy for countries in Asia.
+```{r}
+## Your turn
+gapminder %>%
+  filter(continent == "Asia") %>%
+  group_by(continent, country) %>%
+  summarize(max(lifeExp))
+```
+
+
+
+#### Additional Data wrangling questions
+Q. What other questions can you ask from the gapminder dataset (questions that you can answer by wrangling the data)?
+_Growth of life expentancy along with growth in life expectancy?_
+
+#### Data wrangling questions with another dataset
+Q. PS1 was on nycflight data. Assuming that the problem set and data is fresh in your mind, what other questions can you ask from the flight dataset (questions that you can answer by wrangling the data)? And what dplyr functions would you use to answer that question?
+(*Example question: What is the typical delay of flights?*)
+_Are flights delayed more in the A.M. or P.M? Are there better times during the day? Functions to use are probably group_by, max or min, and probably a filter_
