@@ -42,19 +42,15 @@ Write a function, `calculate_bmi` to calculate a person's body mass index, when 
 In your response, before presenting your code for the function, tell us your official reference for the BMI formulae.
 
 ##### Insert Response first
-
+https://www.bmi-calculator.net/bmi-formula.php
 
 ##### Insert code. Your code should appear within R Code Chunks.
 ```{r calculate BMI}
 calculate_bmi <- function(weight, height) {
-  bmi <- sum(weight, height)
-  return(bmi)
+  return((weight / (height * height)) * 703)
 }
 
-calculate_bmi(5,10)
 ```
-
-
 
 #### Problem 2: Exploring the NYC Flights Data
 
@@ -92,7 +88,7 @@ flights
 
 Load the data and describe in a short paragraph how the data was collected and what each variable represents. 
 
-_This is the data collected over the period of a year from flights going into and out of NYC. The variables include; YEAR, MONTH, DAY as well as departure time (dep_time) which would be in a time format of 5:17 for example, a scheduled departure time (shed_dep_time) in similar format, departure delay (dep_delay) in minuits either positive or negative values depending if the flight departed early or late, an arrival time (arr_time) in a similar time format, a scheduled arrival time (shed_arr_time), and an arrival delay (arr_delay) which is also in a minutes format. There is then the carrier which is just 2 letters, the flight number (numbers), a tail number which is a combination of letters and numbers referencing the specific plane, the origin airport and the destination airport. Total Air_time which is in minutes, distance in miles, and then hour and minute column followed by time_hour._
+_This is the data collected over the period of a year from flights going into and out of NYC. The variables include; YEAR, MONTH, DAY as well as departure time (dep_time) which would be in a time format of 5:17 for example, a scheduled departure time (shed_dep_time) in similar format, departure delay (dep_delay) in minutes either positive or negative values depending if the flight departed early or late, an arrival time (arr_time) in a similar time format, a scheduled arrival time (shed_arr_time), and an arrival delay (arr_delay) which is also in a minutes format. There is then the carrier which is just 2 letters, the flight number (numbers), a tail number which is a combination of letters and numbers referencing the specific plane, the origin airport and the destination airport. Total Air_time which is in minutes, distance in miles, and then hour and minute column followed by time_hour._
 
 ##### (b) Inspecting Data
 Perform a basic inspection of the data and discuss what you find. Inspections may involve asking the following questions (the list is not inclusive, you may well ask other questions):
@@ -102,16 +98,21 @@ Perform a basic inspection of the data and discuss what you find. Inspections ma
   * Do you see any unreasonable values? *Hint: Check out min, max and range functions.*
   
 ```{r Inspecting data}
-#unique(flights$carrier) ## doublecheck what 00, 9E, and B6 means.
+unique(flights$carrier) 
+## Not sure what carrier operates as "00"... this could be an error.
 
-#max(flights$distance)
+max(flights$distance)
 
-#min(flights$distance) ## some possible issues with a 17 mile trip??
+min(flights$distance) ## some possible issues with a 17 mile trip??
 
 flight_time_wo <- flights %>%
-  filter(!is.na(air_time), !is.na(air_time)) ## Removing NA values... these could potentiall be canceled flights.
+  filter(!is.na(air_time), !is.na(air_time))
+## Removing NA values... 
+## these could potential be canceled flights.
 
-min(flight_time_wo$air_time) ## Seeing a min of 20 min which could be weird.
+min(flight_time_wo$air_time) 
+## Seeing a min of 20 min which could be abnormal... 
+##  I would want to dig further into this specific flight.
 
 ```
   
@@ -139,7 +140,6 @@ For each of the questions you proposed in Problem 1c, perform an exploratory dat
   
 ```{r Airline data question 1}
 ## Do origin airports experience seasonal delays more than others?
-
 airport_data <- flights %>%
   group_by(origin, month) %>%
   summarize(mean = mean(dep_delay, na.rm = TRUE))
@@ -151,17 +151,42 @@ ggplot(data = airport_data) +
     mapping = aes(x = month, y = mean, color = origin)
   )
 
-## The graph shows a clear difference between EWR and the other two airports. It would appear that there is a seasonality for all airports. This we would expect as the summer months see more travelers and probably more families traveling which could account for the increase in delays. Furthermore, we see delays during typically winter months which could be attributed to snowy conditions causing delays. One could use this data to to pick an optimal time to fly and airlines could use this data to scrutinize how flights are scheduled and account for expected delays during specific months.
+## The graph shows a clear difference between EWR and the other two airports. 
+## It would appear that there is a seasonality for all airports. This we would 
+## expect as the summer months see more travelers and probably more families 
+## traveling which could account for the increase in delays. Furthermore, we 
+## see delays during typically winter months which could be attributed to snowy
+## conditions causing delays. One could use this data to to pick an optimal time 
+## to fly and airlines could use this data to scrutinize how flights are 
+## scheduled and account for expected delays during specific months.
 ```
 ```{r Airline data question 2}
 # Which airline experiences more delays and by how much?
 
+## Selecting the necessary columns and then removing the NA rows
 airline_data <- flights %>%
-  group_by(carrier) %>%
-  summarize(mean = mean(dep_delay, na.rm = TRUE))
-airline_data
-```
+  select(carrier, month, arr_delay) %>%
+  na.omit()
 
+## Creating a new data frame wich finds the average for each carrier each month.
+new_df <- aggregate(airline_data[,3], list(airline_data$carrier, 
+                                           airline_data$month), mean) %>%
+  rename(
+    Carrier = Group.1,
+    Month = Group.2
+  )
+head(new_df)
+
+## I tried graphing this to show how each carrier performs against eachother
+ggplot(new_df, aes(x = Carrier, y = arr_delay)) +
+ geom_col(stat="identity", position=position_dodge()) +
+  theme_minimal()
+
+## The graph is pretty simple and does not do a great job of providing clearer 
+## data with regards to seasonality. We can see how certain airlines perform 
+## better than others, but this is only for the year 2013 and thus is a small 
+## snapshot of the industry.
+```
 
 ##### (e) Challenge Your Results
 
