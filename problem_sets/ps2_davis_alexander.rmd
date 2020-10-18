@@ -3,8 +3,8 @@ title: 'IMT 573: Problem Set 2 - Working with Data'
 author: "Alexander Davis"
 date: 'Due: Tuesday, October 20, 2020 by 9am PT'
 output:
-  pdf_document: default
   html_document: default
+  pdf_document: default
 ---
 
 ##### Collaborators: <!-- BE SURE TO LIST ALL COLLABORATORS HERE! -->
@@ -62,22 +62,16 @@ flights
 
 \item How many flights out of NYC are there in the data?
 ```{r}
-leaving_nyc <- flights %>% 
-  nrow()
-
-cat("There are", leaving_nyc, "flights out of NYC in the dataset.")
+cat("There are", nrow(flights), "flights out of NYC in the dataset.")
 ```
 
 \item How many NYC airports are included in this data?  Which airports are these?
 ```{r}
-unique(flights$origin)
-
+cat("There are", length(unique(flights$origin)), "airports and they are", unique(flights$origin))
 ```
 
 \item Into how many airports did the airlines fly from NYC in 2013?
 ```{r}
-length(unique(flights$dest))
-
 cat("There were", length(unique(flights$dest)), "unique airports that airlines flew into from NYC in 2013.")
 ```
 
@@ -96,7 +90,7 @@ to_spokane <- flights %>%
   filter(dest == "GAG")
 to_spokane
 
-# No flights from NYC to Spokane
+cat("No flights from NYC to Spokane")
 ```
 
 \item What about missing destination codes?  Are there any destinations that do not look like valid airport codes (i.e. three-letter-all-upper case)?
@@ -133,23 +127,87 @@ Flights are often delayed.  Let's look closer at this topic using the NYC Flight
 ##### (1) Typical Delays
 
 What is the typical delay of flights in this data?
+```{r}
+typical_delay <- flights %>% 
+  select(dep_delay) %>% 
+  na.omit()
+
+mean(typical_delay$dep_delay)
+```
 
 ##### (2) Defining Flight Delays
 
 What definition of flight delay did you use to answer part (a)? Did you do any specific exploration and description of this variable prior to using it? If no, please do so now. Is there any missing data?  Are there any implausible or invalid entries?  
 
+_I used the average after removing NA values. I did some exploration to remove the NA values. It would appear that some of the min/max values are probably implausible. Having a delay of 1301 min or 21 hours seems very excessive.  Leaving 43 min early seems somewhat possible if the flight is nearly empty._
+```{r}
+min(typical_delay)
+
+max(typical_delay)
+```
+
+
 ##### (3) Delays by Destination
 
 Now compute flight delay by destinations.  Which ones are the worst three destinations from NYC if you don't like flight delays? Be sure to justify your delay variable choice. 
+
+```{r}
+delay_dest <- flights %>% 
+  select(dest, dep_delay) %>% 
+  na.omit() %>% 
+  group_by(dest) %>% 
+  summarise(mean = mean(dep_delay), n = n()) %>% 
+  arrange(-mean) %>% 
+  slice(1:3)
+
+delay_dest
+```
+_I chose to group_by and find the average delay for each destination from NYC along with the count of flights for each destination. This way I can see if there is also a significant difference between the number of flights and what the average delay is. It seems like (from the top three) that number of flights are not a factor in delays and it might even have an inverse effect._
 
 ##### (4) Delays by time of day
 
 We'd like to know how much do delays depend on the time of day. Are there more delays in the mornings? Late night when all the daily delays may accumulate? Create a visualization (graph or table) to illustrate your findings.
 
+```{r}
+temp_df <- flights %>% 
+  select(year, month, day, dep_time, dep_delay, carrier) %>% 
+    na.omit() %>% 
+  filter(dep_delay > 0) # Omit any delays that are below 0 min. These flights would be considered leaving early.
+temp_df
+
+# Mutate and assign the times to a specific category
+delay_df <- mutate(temp_df, time_of_day = 
+         ifelse(dep_time %in% 00300:1059, "Morning",
+         ifelse(dep_time %in% 1100:1659, "Afternoon",
+         ifelse(dep_time %in% 1700:1900, "Evening", "Night")))) %>% 
+  group_by(time_of_day) %>% 
+  summarise(mean = round(mean(dep_delay), 1), n = n())
+delay_df
+
+# Looking at the average delay per flight (removed early flights and NA values)
+ggplot(data = delay_df,aes(x=time_of_day, y=mean)) +
+  geom_bar(stat="identity", fill="steelblue") +
+  geom_text(aes(label=mean), vjust=1.6, color="white", size=3.5) +
+  scale_x_discrete(limits=c("Morning", "Afternoon", "Evening", "Night")) +
+  theme_minimal() +
+  ggtitle("Average delay of flights")
+
+# Looking at the overall number of flights
+ggplot(data = delay_df,aes(x=time_of_day, y=n)) +
+  geom_bar(stat="identity", fill="steelblue") +
+  geom_text(aes(label=n), vjust=1.6, color="white", size=3.5) +
+  scale_x_discrete(limits=c("Morning", "Afternoon", "Evening", "Night")) +
+  theme_minimal() +
+  ggtitle("Overall number of flights")
+```
+
+
 ##### (5) Reflect and Challenge Your Results
 
 After completing the exploratory analyses from Problem 2, do you have any concerns about these questions and your findings? How well defined were the questions? If you feel a question is not defined well enough, re-formulate it in a more specific way so you can actually answer this question. And state clearly what is your more precise question.  
 Can you formulate any additional questions regarding flight delays?
+
+_I think the questions asked are fine. The problem with looking at time of day is that it can be over-simplified. There can be a lot of variability among airlines and airports so this wouldn't help a whole lot except for figuring out when the best time of the day it is to fly. I would specify in this question if we need to see when is the longest delay or how many (n) delays are there in each part of the day. It would also be nice to know if there is a convention when it comes to grouping the times. I would want to break down this exploration into the three different kind of airports in NYC and also take into consideration the airlines that operate here._
 
 #### Problem 3: Let's Fly Across the Country!
 
@@ -158,9 +216,31 @@ Can you formulate any additional questions regarding flight delays?
 Answer the following questions in order to describe and summarize the `flights` data, focusing on flights from New York to Portland, OR (airport code `PDX`).
 
 \begin{enumerate}
+```{r}
+pdx_flights <- flights %>% 
+  filter(dest == "PDX")
+```
+
 \item How many flights were there from NYC airports to Portland in 2013?
+```{r}
+cat("There were", nrow(pdx_flights),"flights to Portland in 2013.")
+```
+
 \item How many airlines fly from NYC to Portland?
+```{r}
+cat(length(unique(pdx_flights$carrier)), "airlines flew from NYC to Portland.")
+```
+
 \item Which are these airlines (find the 2-letter abbreviations)?  How many times did each of these go to Portland?
+```{r}
+pdx_airlines <- pdx_flights %>% 
+  select(carrier, dest) %>% 
+  group_by(carrier) %>% 
+  summarize(count = n())
+
+pdx_airlines
+```
+
 \item How many unique airplanes fly from NYC to PDX? \\ \textcolor{blue}{Hint: airplane tail number is a unique identifier of an airplane.}
 \item How many different airplanes arrived from each of the three NYC airports to Portland?
 \item What percentage of flights to Portland were delayed at departure by more than 15 minutes?
