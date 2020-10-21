@@ -38,7 +38,6 @@ In this problem set you will need, at minimum, the following R packages.
 
 ```{r Setup, message=FALSE}
 # Load standard libraries
-setwd("~/Documents/uw/imt_573/problem_sets")
 library(tidyverse)
 library(nycflights13)
 ```
@@ -54,29 +53,31 @@ In Problem Set 1 you started to explore this data. Now we will perform a more th
 Answer the following questions in order to describe and summarize the `flights` data. 
 
 \begin{enumerate}
-```{r}
+```{r warning=FALSE}
 data(flights)
 flights <- tibble(flights)
 flights
 ```
 
 \item How many flights out of NYC are there in the data?
-```{r}
+```{r warning=FALSE}
 cat("There are", nrow(flights), "flights out of NYC in the dataset.")
 ```
 
 \item How many NYC airports are included in this data?  Which airports are these?
-```{r}
-cat("There are", length(unique(flights$origin)), "airports and they are", unique(flights$origin))
+```{r warning=FALSE}
+cat("There are", length(unique(flights$origin)), "airports and they are", 
+    unique(flights$origin))
 ```
 
 \item Into how many airports did the airlines fly from NYC in 2013?
-```{r}
-cat("There were", length(unique(flights$dest)), "unique airports that airlines flew into from NYC in 2013.")
+```{r warning=FALSE}
+cat("There were", length(unique(flights$dest)), "unique airports that airlines 
+    flew into from NYC in 2013.")
 ```
 
 \item How many flights were there from NYC to Seattle (airport code \texttt{SEA})?
-```{r}
+```{r warning=FALSE}
 to_seattle <- flights %>% 
   filter(dest == "SEA") %>% 
   nrow()
@@ -85,7 +86,7 @@ cat("There were", to_seattle, "flights were there from NYC to Seattle.")
 ```
 
 \item Were the any flights from NYC to Spokane \texttt{(GAG)}?
-```{r}
+```{r warning=FALSE}
 to_spokane <- flights %>% 
   filter(dest == "GAG")
 to_spokane
@@ -94,7 +95,7 @@ cat("No flights from NYC to Spokane")
 ```
 
 \item What about missing destination codes?  Are there any destinations that do not look like valid airport codes (i.e. three-letter-all-upper case)?
-```{r}
+```{r warning=FALSE}
 airports <- unique(flights$dest)
 nchar(airports)
 grepl("^[[:upper:]]{3}$",airports)
@@ -127,7 +128,7 @@ Flights are often delayed.  Let's look closer at this topic using the NYC Flight
 ##### (1) Typical Delays
 
 What is the typical delay of flights in this data?
-```{r}
+```{r warning=FALSE}
 typical_delay <- flights %>% 
   select(dep_delay) %>% 
   na.omit()
@@ -140,7 +141,7 @@ mean(typical_delay$dep_delay)
 What definition of flight delay did you use to answer part (a)? Did you do any specific exploration and description of this variable prior to using it? If no, please do so now. Is there any missing data?  Are there any implausible or invalid entries?  
 
 _I used the average after removing NA values. I did some exploration to remove the NA values. It would appear that some of the min/max values are probably implausible. Having a delay of 1301 min or 21 hours seems very excessive.  Leaving 43 min early seems somewhat possible if the flight is nearly empty._
-```{r}
+```{r warning=FALSE}
 min(typical_delay)
 
 max(typical_delay)
@@ -151,7 +152,7 @@ max(typical_delay)
 
 Now compute flight delay by destinations.  Which ones are the worst three destinations from NYC if you don't like flight delays? Be sure to justify your delay variable choice. 
 
-```{r}
+```{r message=FALSE, warning=FALSE}
 delay_dest <- flights %>% 
   select(dest, dep_delay) %>% 
   na.omit() %>% 
@@ -168,7 +169,7 @@ _I chose to group_by and find the average delay for each destination from NYC al
 
 We'd like to know how much do delays depend on the time of day. Are there more delays in the mornings? Late night when all the daily delays may accumulate? Create a visualization (graph or table) to illustrate your findings.
 
-```{r}
+```{r message=FALSE, warning=FALSE}
 temp_df <- flights %>% 
   select(year, month, day, dep_time, dep_delay, carrier) %>% 
     na.omit() %>% 
@@ -216,23 +217,23 @@ _I think the questions asked are fine. The problem with looking at time of day i
 Answer the following questions in order to describe and summarize the `flights` data, focusing on flights from New York to Portland, OR (airport code `PDX`).
 
 \begin{enumerate}
-```{r}
+```{r warning=FALSE}
 pdx_flights <- flights %>% 
   filter(dest == "PDX")
 ```
 
 \item How many flights were there from NYC airports to Portland in 2013?
-```{r}
+```{r warning=FALSE}
 cat("There were", nrow(pdx_flights),"flights to Portland in 2013.")
 ```
 
 \item How many airlines fly from NYC to Portland?
-```{r}
+```{r warning=FALSE}
 cat(length(unique(pdx_flights$carrier)), "airlines flew from NYC to Portland.")
 ```
 
 \item Which are these airlines (find the 2-letter abbreviations)?  How many times did each of these go to Portland?
-```{r}
+```{r message=FALSE, warning=FALSE}
 pdx_airlines <- pdx_flights %>% 
   select(carrier, dest) %>% 
   group_by(carrier) %>% 
@@ -242,16 +243,87 @@ pdx_airlines
 ```
 
 \item How many unique airplanes fly from NYC to PDX? \\ \textcolor{blue}{Hint: airplane tail number is a unique identifier of an airplane.}
+```{r warning=FALSE}
+cat(length(unique(pdx_flights$tailnum)), 
+    "unique airplines flew from NYC to PDX.")
+```
+
 \item How many different airplanes arrived from each of the three NYC airports to Portland?
+```{r message=FALSE, warning=FALSE}
+three_nyc_airports <- pdx_flights %>% 
+  select(origin, tailnum) %>% 
+  group_by(origin) %>% 
+  summarize(n = n())
+
+three_nyc_airports
+```
+
 \item What percentage of flights to Portland were delayed at departure by more than 15 minutes?
+```{r warning=FALSE}
+more_than <- pdx_flights %>% 
+  filter(dep_delay > 15) %>% 
+  nrow()
+
+perc_flights <- more_than / nrow(pdx_flights)
+
+cat(perc_flights * 100, 
+    "percentage of flights were delayed by more than 15 min.")
+```
+
 \item Is one of the New York airports noticeably worse in terms of departure delays for flights to Portland, OR than others?
+```{r warning=FALSE}
+worse_airport <- pdx_flights %>% 
+  select(origin, dep_delay) %>% 
+  group_by(origin) %>% 
+  na.omit() %>% 
+  summarize(mean = mean(dep_delay)) %>% 
+  arrange(-mean)
+
+worse_airport[1,]
+```
+
 \end{enumerate}
 
 #### (b) Reflect and Question
 
 Comment on the questions (and answers) in this analysis.  Were you able to answer all of these questions?  Are all questions well defined?  Is the data good enough to answer all these?
 
+_Yes I was able to answer all questions. I think the continuous issue is not being specific enough when it comes to flying from NYC to PDX. Unfortunately there are three airports for NYC so this wouldn't be useful information to any of the specific airlines or airports until we were able to break it out by airport.  The questions could be refined a bit more in this respect. The data is good enough though to answer all of these questions._
+
 #### Extra Credit
 ##### Seasonal Delays
 
 Let's get back to the question of flight delays. Flight delays may be partly related to weather, as you might have experienced for yourself.  We do not have weather information here but let's analyze how it is related to season. Which seasons have the worst flights delays? Why might this be the case? In your communication of your analysis use one graphical visualization and one tabular representation of your findings.
+```{r message=FALSE, warning=FALSE}
+#install.packages("flextable")
+library(flextable)
+```
+
+_In my analysis of the average flight delays broken down by season, summer appears to be the season with the biggest average delay.  It also has by far the most amount of flights and this is probably due to tourist season during this period of months; July - September. This is often when schools are on summer break and families are traveling. This despite NYC typically have weather during the winter season that might greatly effect flight travel._
+```{r message=FALSE, warning=FALSE}
+# For reference:
+# Winter – December, January and February.
+# Spring – March, April and May.
+# Summer – June, July and August.
+# Autumn – September, October and November.
+
+seasonal_df <- mutate(flights, season = 
+         ifelse(month %in% 3:5, "Spring",
+         ifelse(month %in% 6:8, "Summer",
+         ifelse(month %in% 9:11, "Autumn", "Winter")))) %>% 
+  na.omit %>% 
+  group_by(season) %>% 
+  summarise(mean = round(mean(dep_delay), 1), n = n())
+
+flextable(
+  seasonal_df
+          )  
+
+ggplot(data = seasonal_df,aes(x=season, y=mean)) +
+  geom_bar(stat="identity", fill="steelblue") +
+  geom_text(aes(label=mean), vjust=1.6, color="white", size=3.5) +
+  scale_x_discrete(limits=c("Winter", "Spring", "Summer", "Autumn")) +
+  theme_minimal() +
+  ggtitle("Seasonal average delay")
+```
+
