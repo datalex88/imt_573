@@ -100,13 +100,38 @@ _It looks like there are about 3200 beats that are missing an assigned area and 
 
 Load the data on Seattle police beats  provided in `police_beat_and_precinct_centerpoints.csv`. You can find additional information on the data here: (https://data.seattle.gov/Land-Base/Police-Beat-and-Precinct-Centerpoints/4khs-fz35). We will call this dataset the "Beats Dataset."
 
+```{r}
+police_data <- read.csv("police_beat_and_precinct_centerpoints.csv")
+police_data
+```
+
 Does the Crime Dataset include police beats that are not present in the Beats Dataset? If so, how many and with what frequency do they occur? Would you say that these comprise a large number of the observations in the Crime Dataset or are they rather infrequent? Do you think removing them would drastically alter the scope of the Crime Dataset?
 
+_It looks like there are beats that are not present in this dataset.  There are 8 more observations than the Beat dataset and due to the fact that there is a blank beat containing 3200 I would say there are a significant amount of observations missing. This would drastically alter the scope._
+
 Let's remove all instances in the Crime Dataset that have beats which occur fewer than 10 times across the Crime Dataset. Also remove any observations with missing beats. After only keeping years of interest and filtering based on frequency of the beat, how many observations do we now have in the Crime Dataset?
+
+```{r}
+freq_of_beats <- freq_of_beats %>% 
+  na.omit() %>% 
+  filter(n >= 10)
+
+freq_of_beats <- freq_of_beats[!(is.na(freq_of_beats$Beat) | freq_of_beats$Beat==""), ]
+sum(freq_of_beats$n)
+```
 
 ##### (e) Importing and Inspecting Police Beat Data
 
 To join the Beat Dataset to census data, we must have census tract information. Use the `censusr` package to extract the 15-digit census tract for each police beat using the corresponding latitude and longitude. Do this using each of the police beats listed in the Beats Dataset. Do not use a for-loop for this but instead rely on R functions (e.g. the 'apply' family of functions). Add a column to the Beat Dataset that contains the 15-digit census tract for the each beat. (HINT: you may find `censusr`'s `call_geolocator_latlon` function useful)
+
+```{r}
+library('censusr')
+
+police_data <- police_data %>% 
+  mutate(census_tact = 
+    mapply(call_geolocator_latlon, Latitude, Longitude)
+  )
+```
 
 We will eventually join the Beats Dataset to the Crime Dataset. We could have joined the two and then found the census tracts for each beat. Would there have been a particular advantage/disadvantage to doing this join first and then finding census tracts? If so, what is it? (NOTE: you do not need to write any code to answer this)
 
@@ -115,21 +140,60 @@ We will eventually join the Beats Dataset to the Crime Dataset. We could have jo
 Once we have the 15-digit census codes, we will break down the code based on information of interest. You can find more information on what these 15 digits represent here: https://transition.fcc.gov/form477/Geo/more_about_census_blocks.pdf.
 
 First, create a column that contains the state code for each beat in the Beats Dataset. Then create a column that contains the county code for each beat. Find the FIPS codes for WA State and King County (the county of Seattle) online. Are the extracted state and county codes what you would expect them to be? Why or why not?
+```{r}
+state_county_data <- data.frame(police_data %>% 
+  mutate(census_state = 
+    substring(census_tact, first = 1, last = 2)
+  ) %>% 
+  mutate(census_county =
+    substring(census_tact, first = 3, last = 5)
+  ))
+
+# This is what I expected as the beat data came from King county police and it matches with the king country census codes.
+```
 
 ##### (g) Extracting 11-digit Codes
 
 The census data uses an 11-digit code that consists of the state, county, and tract code. It does not include the block code. To join the census data to the Beats Dataset, we must have this code for each of the beats. Extract the 11-digit code for each of the beats in the Beats Dataset. The 11 digits consist of the 2 state digits, 3 county digits, and 6 tract digits. Add a column with the 11-digit code for each beat.
 
+```{r}
+state_county_data <- state_county_data %>% 
+  mutate(census_11_code = 
+    substring(census_tact, first = 1, last = 11)
+  )
+```
+
 ##### (h) Extracting 11-digit Codes From Census
 
-Now, we will examine census data  provided om `census_edu_data.csv`. The data includes counts of education attainment across different census tracts. Note how this data is in a 'wide' format and how it can be converted to a 'long' format. For now, we will work with it as is.
+Now, we will examine census data provided on `census_edu_data.csv`. The data includes counts of education attainment across different census tracts. Note how this data is in a 'wide' format and how it can be converted to a 'long' format. For now, we will work with it as is.
 
 The census data contains a `GEO.id` column. Among other things, this variable encodes the 11-digit code that we had extracted above for each of the police beats. Specifically, when we look at the characters after the characters "US" for values of `GEO.id`, we see encodings for state, county, and tract, which should align with the beats we had above. Extract the 11-digit code from the `GEO.id` column. Add a column to the census data with the 11-digit code for each census observation.
+
+```{r}
+census_edu_data <- data.frame(read.csv("census_edu_data.csv"))
+
+census_edu_data <- census_edu_data %>% 
+  mutate(census_11_code = 
+           census_edu_data$GEO.id2) %>% 
+  lapply(as.character)
+```
 
 ##### (i) Join Datasets
 
 Join the census data with the Beat Dataset using the 11-digit codes as keys. Be sure that you do not lose any of the police beats when doing this join (i.e. your output dataframe should have the same number of rows as the cleaned Beats Dataset - use the correct join). Are there any police beats that do not have any associated census data? If so, how many?
 
+```{r}
+beat_census_data <- merge(state_county_data, census_edu_data, by.x = census_11_code, by.y = census_11_code)
+```
+
 Then, join the Crime Dataset to our joined beat/census data. We can do this using the police beat name. Again, be sure you do not lose any observations from the Crime Dataset. What is the final dimensions of the joined dataset?
 
+```{r}
+beat_census_data <- inner_join(police_data, census_edu_data, by = )
+```
+
 Once everything is joined, save the final dataset for future use.
+
+```{r}
+
+```
